@@ -1,0 +1,11 @@
+/mr_bean.jpg
+/bean.jpg
+/__pycache__/
+*.pyc
+*.pyo
+/venv/
+.DS_Store
+.idea/  
+*.log
+*.bak
+/.venv-1
