@@ -392,42 +392,38 @@ def generate_login_frames():
     liveness_passed = False
     identity_verified = False
     set_login_status("running", "Liveness test running")
+    
+    frame_count = 0  
+
     try:
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
 
-            blacklist_frame, blacklisted, blacklist_label = verificar_blacklist(frame)
-            if blacklisted:
-                set_login_status("blacklisted", f"Blacklisted user detected: {blacklist_label}")
-                _put_text(
-                    blacklist_frame,
-                    f"BLACKLISTED USER DETECTED: {blacklist_label}",
-                    (20, 80),
-                    (0, 0, 255),
-                    scale=0.9,
-                )
-                _put_text(
-                    blacklist_frame,
-                    "VIDEO FEED CLOSED",
-                    (20, 115),
-                    (0, 0, 255),
-                    scale=0.8,
-                )
-                payload = _stream_frame(blacklist_frame)
-                if payload is not None:
-                    yield payload
-                break
+            frame_count += 1
+            
+            # blacklist cada 15 frames
+            if frame_count % 15 == 0:
+                blacklist_frame, blacklisted, blacklist_label = verificar_blacklist(frame)
+                if blacklisted:
+                    set_login_status("blacklisted", f"Blacklisted user detected: {blacklist_label}")
+                    _put_text(blacklist_frame, f"BLACKLISTED USER DETECTED: {blacklist_label}", (20, 80), (0, 0, 255), scale=0.9)
+                    _put_text(blacklist_frame, "VIDEO FEED CLOSED", (20, 115), (0, 0, 255), scale=0.8)
+                    payload = _stream_frame(blacklist_frame)
+                    if payload is not None:
+                        yield payload
+                    break
 
             elapsed_seconds = time.monotonic() - start_time
-            if elapsed_seconds >= 10.0:
+            if elapsed_seconds >= 20.0:
                 if identity_verified:
                     set_login_status("granted", "Login granted")
                 else:
                     set_login_status("failed", "Liveness test failed. Video feed closed.")
                 break
 
+            # Liveliness
             if not liveness_passed:
                 processed_frame, phase = _process_liveness_frame(frame, start_time)
 
@@ -444,29 +440,25 @@ def generate_login_frames():
                     break
                 else:
                     payload = _stream_frame(processed_frame)
-                    if payload is None:
-                        continue
-
-                    yield payload
+                    if payload is not None:
+                        yield payload
                     continue
 
-            processed_frame, matched = _process_identity_frame(frame)
-            if matched:
-                identity_verified = True
-                set_login_status("granted", "Login granted")
-                _put_text(
-                    processed_frame,
-                    "LOGIN VERIFIED - closing at 10 seconds",
-                    (20, 115),
-                    (0, 255, 0),
-                )
+            # face matching cada 5 frames
+            if frame_count % 5 == 0:
+                processed_frame, matched = _process_identity_frame(frame)
+                if matched:
+                    identity_verified = True
+                    set_login_status("granted", "Login granted")
+                    _put_text(processed_frame, "LOGIN VERIFIED - closing at 10 seconds", (20, 115), (0, 255, 0))
             else:
-                _put_text(
-                    processed_frame,
-                    "WAITING FOR VERIFICATION",
-                    (20, 115),
-                    (255, 255, 0),
-                )
+                
+                processed_frame = frame.copy()
+                _put_text(processed_frame, "LIVENESS PASSED - checking identity", (20, 40), (0, 255, 0))
+                if identity_verified:
+                    _put_text(processed_frame, "LOGIN VERIFIED", (20, 80), (0, 255, 0), scale=0.9)
+                else:
+                    _put_text(processed_frame, "MATCHING REGISTERED FACES...", (20, 80), (255, 255, 0), scale=0.9)
 
             payload = _stream_frame(processed_frame)
             if payload is not None:
