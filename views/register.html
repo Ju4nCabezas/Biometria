@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Biometria</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0c0f;
+      --surface: #10141a;
+      --surface-2: #13181f;
+      --border: #1e2530;
+      --accent: #00e5ff;
+      --accent-dim: rgba(0, 229, 255, 0.10);
+      --accent-glow: rgba(0, 229, 255, 0.3);
+      --ok: #00e676;
+      --ok-dim: rgba(0, 230, 118, 0.10);
+      --warn: #ff4655;
+      --warn-dim: rgba(255, 70, 85, 0.10);
+      --text: #c8d6e5;
+      --text-dim: #4a5a6a;
+      --mono: 'Share Tech Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 48px 20px 80px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+      opacity: 0.5;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.2;
+      animation: scan 6s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes scan {
+      0%   { top: -2px; }
+      100% { top: 100vh; }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: min(560px, 100%);
+      animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* topbar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 40px;
+    }
+
+    .back {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      text-decoration: none;
+      letter-spacing: 0.1em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+    .back:hover { color: var(--accent); }
+
+    .breadcrumb {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+    .breadcrumb span { color: var(--accent); }
+
+    /* header */
+    .header { margin-bottom: 32px; }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .subtitle {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    /* card */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface-2);
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .card-body { padding: 24px 20px; }
+
+    /* drop zone */
+    .drop-zone {
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+      text-align: center;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .drop-zone.has-file {
+      border-style: solid;
+      border-color: var(--accent);
+      background: var(--accent-dim);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      width: 40px;
+      height: 40px;
+      stroke: var(--text-dim);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke 0.2s;
+    }
+
+    .drop-zone:hover .drop-icon,
+    .drop-zone.dragover .drop-icon,
+    .drop-zone.has-file .drop-icon {
+      stroke: var(--accent);
+    }
+
+    .drop-label {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      letter-spacing: 0.05em;
+      transition: color 0.2s;
+      pointer-events: none;
+    }
+
+    .drop-zone:hover .drop-label,
+    .drop-zone.has-file .drop-label {
+      color: var(--accent);
+    }
+
+    .drop-formats {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    /* preview */
+    #preview-wrap {
+      display: none;
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    #preview-wrap.visible { display: block; }
+
+    #preview-wrap img {
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .preview-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--surface-2);
+      border-top: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .preview-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .btn-clear {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 4px;
+      transition: color 0.2s;
+      flex-shrink: 0;
+    }
+    .btn-clear:hover { color: var(--warn); }
+
+    /* submit button */
+    .btn-submit {
+      margin-top: 20px;
+      width: 100%;
+      padding: 14px 20px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: var(--accent);
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-submit:hover:not(:disabled) {
+      background: rgba(0, 229, 255, 0.2);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .btn-submit:active:not(:disabled) { transform: scale(0.98); }
+
+    .btn-submit:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* spinner */
+    .spinner {
+      display: none;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(0, 229, 255, 0.3);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .btn-submit.loading .spinner { display: block; }
+    .btn-submit.loading .btn-text { opacity: 0.6; }
+
+    /* result banner */
+    #result {
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      line-height: 1.5;
+      display: none;
+      border: 1px solid transparent;
+    }
+
+    #result.ok {
+      display: block;
+      background: var(--ok-dim);
+      border-color: rgba(0, 230, 118, 0.3);
+      color: var(--ok);
+    }
+
+    #result.err {
+      display: block;
+      background: var(--warn-dim);
+      border-color: rgba(255, 70, 85, 0.3);
+      color: var(--warn);
+    }
+
+    /* hint */
+    .hint {
+      margin-top: 20px;
+      padding: 12px 16px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      letter-spacing: 0.03em;
+    }
+
+    .hint strong {
+      color: var(--accent);
+      font-weight: 400;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="topbar">
+      <a href="/" class="back">← Inicio</a>
+      <span class="breadcrumb">BIOMETRIA / <span>REGISTER</span></span>
+    </div>
+
+    <header class="header">
+      <p class="eyebrow">Alta de usuario</p>
+      <h1>Register</h1>
+      <p class="subtitle">// Registro de nueva identidad biométrica</p>
+    </header>
+
+    <div class="card">
+      <div class="card-header">Subir foto de referencia</div>
+      <div class="card-body">
+
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" id="file-input" accept="image/png,image/jpeg" />
+          <svg class="drop-icon" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <span class="drop-label" id="drop-label">Arrastra una imagen o haz clic para seleccionar</span>
+          <span class="drop-formats">JPG · JPEG · PNG</span>
+        </div>
+
+        <div id="preview-wrap">
+          <img id="preview-img" alt="Vista previa" />
+          <div class="preview-bar">
+            <span class="preview-name" id="preview-name"></span>
+            <button class="btn-clear" id="btn-clear" type="button" title="Quitar imagen">✕</button>
+          </div>
+        </div>
+
+        <button class="btn-submit" id="btn-submit" type="button" disabled>
+          <span class="spinner"></span>
+          <span class="btn-text">Registrar usuario</span>
+        </button>
+
+        <div id="result"></div>
+
+        <div class="hint">
+          <strong>// Nombre del usuario</strong><br>
+          El nombre que se usará para identificar al usuario se toma automáticamente del nombre del archivo.<br>
+          Por ejemplo: <strong>juan_perez.jpg</strong> → usuario <strong>juan_perez</strong>.
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dropZone   = document.getElementById('drop-zone');
+    const fileInput  = document.getElementById('file-input');
+    const dropLabel  = document.getElementById('drop-label');
+    const previewWrap = document.getElementById('preview-wrap');
+    const previewImg = document.getElementById('preview-img');
+    const previewName = document.getElementById('preview-name');
+    const btnClear   = document.getElementById('btn-clear');
+    const btnSubmit  = document.getElementById('btn-submit');
+    const result     = document.getElementById('result');
+
+    let selectedFile = null;
+
+    function setFile(file) {
+      if (!file) return;
+      selectedFile = file;
+      const url = URL.createObjectURL(file);
+      previewImg.src = url;
+      previewName.textContent = file.name;
+      previewWrap.classList.add('visible');
+      dropZone.classList.add('has-file');
+      dropLabel.textContent = 'Imagen seleccionada';
+      btnSubmit.disabled = false;
+      result.className = '';
+      result.style.display = 'none';
+    }
+
+    function clearFile() {
+      selectedFile = null;
+      fileInput.value = '';
+      previewImg.src = '';
+      previewWrap.classList.remove('visible');
+      dropZone.classList.remove('has-file');
+      dropLabel.textContent = 'Arrastra una imagen o haz clic para seleccionar';
+      btnSubmit.disabled = true;
+    }
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) setFile(fileInput.files[0]);
+    });
+
+    btnClear.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearFile();
+    });
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && (file.type === 'image/jpeg' || file.type === 'image/png')) {
+        setFile(file);
+      } else {
+        showResult('err', 'Formato no válido. Usa JPG o PNG.');
+      }
+    });
+
+    btnSubmit.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      btnSubmit.disabled = true;
+      btnSubmit.classList.add('loading');
+      result.className = '';
+      result.style.display = 'none';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        const response = await fetch('/subir', { method: 'POST', body: formData });
+        const data = await response.json();
+
+        if (!response.ok) {
+          showResult('err', data.detail || 'Error al registrar el usuario.');
+        } else {
+          showResult('ok', `✓ Usuario registrado correctamente como "${selectedFile.name.split('.')[0]}".`);
+          clearFile();
+        }
+      } catch {
+        showResult('err', 'Error de conexión con el servidor.');
+      } finally {
+        btnSubmit.classList.remove('loading');
+        btnSubmit.disabled = !selectedFile;
+      }
+    });
+
+    function showResult(type, message) {
+      result.textContent = message;
+      result.className = type;
+    }
+  </script>
+</body>
+</html>

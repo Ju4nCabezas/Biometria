@@ -1,6 +1,7 @@
 /mr_bean.jpg
 /bean.jpg
 /__pycache__/
+__pycache__
 *.pyc
 *.pyo
 /venv/

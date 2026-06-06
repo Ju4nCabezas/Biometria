@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Biometria</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0c0f;
+      --surface: #10141a;
+      --border: #1e2530;
+      --accent: #00e5ff;
+      --accent-dim: rgba(0, 229, 255, 0.12);
+      --accent-glow: rgba(0, 229, 255, 0.35);
+      --warn: #ff4655;
+      --warn-dim: rgba(255, 70, 85, 0.12);
+      --ok: #00e676;
+      --ok-dim: rgba(0, 230, 118, 0.12);
+      --text: #c8d6e5;
+      --text-dim: #4a5a6a;
+      --mono: 'Share Tech Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 48px 20px 60px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 60% at 50% 50%, black 30%, transparent 100%);
+      opacity: 0.5;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0.2;
+      animation: scan 6s linear infinite;
+      z-index: 0;
+    }
+
+    @keyframes scan {
+      0%   { top: -2px; }
+      100% { top: 100vh; }
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      width: min(760px, 100%);
+      animation: fadeUp 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* top nav */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 40px;
+    }
+
+    .back {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      text-decoration: none;
+      letter-spacing: 0.1em;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.2s;
+    }
+    .back:hover { color: var(--accent); }
+
+    .breadcrumb {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.1em;
+    }
+
+    .breadcrumb span { color: var(--accent); }
+
+    /* header */
+    .header { margin-bottom: 28px; }
+
+    .eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .eyebrow::before {
+      content: '';
+      display: block;
+      width: 20px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    h1 {
+      font-size: clamp(2rem, 6vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .subtitle {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 10px;
+      letter-spacing: 0.05em;
+    }
+
+    /* main layout */
+    .main {
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    @media (max-width: 620px) {
+      .main { grid-template-columns: 1fr; }
+      .sidebar { order: -1; }
+    }
+
+    /* video panel */
+    .video-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .video-panel-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+    }
+
+    .rec-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--warn);
+      display: none;
+      animation: blink 1s step-start infinite;
+    }
+
+    .rec-dot.active { display: block; }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .video-placeholder {
+      aspect-ratio: 4/3;
+      background: #080b0e;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--text-dim);
+    }
+
+    .video-placeholder svg {
+      width: 40px;
+      height: 40px;
+      stroke: var(--text-dim);
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      opacity: 0.4;
+    }
+
+    .video-placeholder p {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      opacity: 0.4;
+    }
+
+    #recognition {
+      display: none;
+      width: 100%;
+      aspect-ratio: 4/3;
+      object-fit: cover;
+    }
+
+    #recognition.active { display: block; }
+
+    /* sidebar */
+    .sidebar { display: flex; flex-direction: column; gap: 12px; }
+
+    /* start button */
+    .btn-start {
+      width: 100%;
+      padding: 14px 20px;
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: var(--accent);
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+      text-transform: uppercase;
+    }
+
+    .btn-start:hover:not(:disabled) {
+      background: rgba(0, 229, 255, 0.2);
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .btn-start:active:not(:disabled) { transform: scale(0.98); }
+
+    .btn-start:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* status card */
+    .status-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      transition: border-color 0.3s;
+    }
+
+    .status-card.state-running { border-color: var(--accent); }
+    .status-card.state-failed  { border-color: var(--warn); }
+    .status-card.state-ok      { border-color: var(--ok); }
+
+    .status-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    #login-status {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 18px;
+      transition: color 0.3s;
+    }
+
+    #login-status.failed  { color: var(--warn); }
+    #login-status.granted { color: var(--ok); }
+
+    /* steps */
+    .steps-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+    }
+
+    .steps-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 12px;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 0;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      border-bottom: 1px solid var(--border);
+      transition: color 0.3s;
+    }
+
+    .step:last-child { border-bottom: none; }
+
+    .step.active { color: var(--accent); }
+    .step.done   { color: var(--ok); }
+    .step.error  { color: var(--warn); }
+
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+
+    .step.done .step-num {
+      background: var(--ok-dim);
+    }
+
+    .step.active .step-num {
+      background: var(--accent-dim);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="topbar">
+      <a href="/" class="back">← Inicio</a>
+      <span class="breadcrumb">BIOMETRIA / <span>LOGIN</span></span>
+    </div>
+
+    <header class="header">
+      <p class="eyebrow">Autenticación biométrica</p>
+      <h1>Login</h1>
+      <p class="subtitle">// Liveness detection + facial matching</p>
+    </header>
+
+    <div class="main">
+
+      <div class="video-panel">
+        <div class="video-panel-header">
+          <span class="rec-dot" id="rec-dot"></span>
+          <span id="feed-label">FEED — INACTIVO</span>
+        </div>
+        <div class="video-placeholder" id="placeholder">
+          <svg viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          <p>CÁMARA INACTIVA</p>
+        </div>
+        <img id="recognition" alt="Facial recognition stream" />
+      </div>
+
+      <aside class="sidebar">
+        <button class="btn-start" id="start-btn" type="button" onclick="startLoginTest(this)">
+          Iniciar prueba
+        </button>
+
+        <div class="status-card" id="status-card">
+          <div class="status-label">Estado del sistema</div>
+          <div id="login-status">En espera de inicio...</div>
+        </div>
+
+        <div class="steps-card">
+          <div class="steps-label">Proceso</div>
+          <div class="step" id="step-1">
+            <span class="step-num">1</span>
+            Detección de rostro
+          </div>
+          <div class="step" id="step-2">
+            <span class="step-num">2</span>
+            Prueba de liveliness
+          </div>
+          <div class="step" id="step-3">
+            <span class="step-num">3</span>
+            Verificación de identidad
+          </div>
+          <div class="step" id="step-4">
+            <span class="step-num">4</span>
+            Acceso concedido
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+
+  <script>
+    function setStep(active, status) {
+      // status: 'active' | 'done' | 'error' | ''
+      const el = document.getElementById(`step-${active}`);
+      if (!el) return;
+      ['active', 'done', 'error'].forEach(c => el.classList.remove(c));
+      if (status) el.classList.add(status);
+    }
+
+    function markStepsDone(upTo) {
+      for (let i = 1; i <= upTo; i++) setStep(i, 'done');
+    }
+
+    function setStatusText(text, cls = '') {
+      const el = document.getElementById('login-status');
+      el.textContent = text;
+      el.className = cls;
+    }
+
+    function closeLoginFeed(message, cls) {
+      const stream = document.getElementById('recognition');
+      const placeholder = document.getElementById('placeholder');
+      const recDot = document.getElementById('rec-dot');
+      const feedLabel = document.getElementById('feed-label');
+      stream.src = '';
+      stream.classList.remove('active');
+      placeholder.style.display = 'flex';
+      recDot.classList.remove('active');
+      feedLabel.textContent = 'FEED — INACTIVO';
+      setStatusText(message, cls);
+      document.getElementById('status-card').className = `status-card state-${cls === 'failed' ? 'failed' : 'ok'}`;
+    }
+
+    function startLoginTest(button) {
+      const stream = document.getElementById('recognition');
+      const placeholder = document.getElementById('placeholder');
+      const recDot = document.getElementById('rec-dot');
+      const feedLabel = document.getElementById('feed-label');
+
+      button.disabled = true;
+      placeholder.style.display = 'none';
+      stream.classList.add('active');
+      stream.src = '/login-video';
+      recDot.classList.add('active');
+      feedLabel.textContent = 'FEED — EN VIVO';
+
+      setStatusText('Iniciando prueba de liveliness...');
+      document.getElementById('status-card').className = 'status-card state-running';
+      setStep(1, 'active');
+
+      const pollStatus = setInterval(async () => {
+        try {
+          const response = await fetch('/login-status');
+          const data = await response.json();
+
+          if (data.state === 'running') {
+            setStep(1, 'done');
+            setStep(2, 'active');
+            setStatusText('Prueba de liveliness en curso...');
+          } else if (data.state === 'passed') {
+            markStepsDone(2);
+            setStep(3, 'active');
+            setStatusText('Verificando identidad...');
+          } else if (data.state === 'checking_identity') {
+            markStepsDone(2);
+            setStep(3, 'active');
+            setStatusText('Cotejando con rostros registrados...');
+          } else if (data.state === 'failed') {
+            setStep(2, 'error');
+            closeLoginFeed(data.message || 'Prueba de liveliness fallida.', 'failed');
+            button.disabled = false;
+            clearInterval(pollStatus);
+          } else if (data.state === 'blacklisted') {
+            setStep(1, 'error');
+            closeLoginFeed(data.message || 'Usuario en lista negra detectado.', 'failed');
+            button.disabled = false;
+            clearInterval(pollStatus);
+          } else if (data.state === 'granted') {
+            markStepsDone(4);
+            setStatusText('Acceso concedido. Redirigiendo...', 'granted');
+            document.getElementById('status-card').className = 'status-card state-ok';
+            clearInterval(pollStatus);
+            setTimeout(() => { window.location.href = '/lista-negra'; }, 800);
+          }
+        } catch (error) {
+          closeLoginFeed('Error de conexión. Feed cerrado.', 'failed');
+          button.disabled = false;
+          clearInterval(pollStatus);
+        }
+      }, 300);
+    }
+  </script>
+</body>
+</html>

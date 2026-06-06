@@ -2,7 +2,7 @@ import shutil
 import time
 
 import cv2
-from test_reco import procesar_imagen, refresh_blacklist_cache, verificar_blacklist, verificar_liveliness, verificar_login
+from test_reco import procesar_imagen, refresh_blacklist_cache, verificar_blacklist, verificar_liveliness, verificar_login, reset_liveness_state
 
 from fastapi import FastAPI, Form, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse, StreamingResponse
@@ -110,89 +110,22 @@ def _blacklist_user(user_name: str):
     refresh_blacklist_cache()
     return destination_image
 
-
-
 @app.get("/")
 async def root():
-    return HTMLResponse("""
-        <h1>Biometria</h1>
-        <ul>
-            <li><a href="/login">Login</a></li>
-            <li><a href="/register">Register</a></li>
-            <li><a href="/lista-negra">Blacklist</a></li>
-        </ul>
-    """)
+    html_path = Path("views") / "index.html"
+    if not html_path.exists():
+        raise HTTPException(status_code=404, detail="index.html not found")
+    return HTMLResponse(html_path.read_text(encoding="utf-8"))
 
-
-@app.get("/login")
-async def login_page():
-    return HTMLResponse("""
-        <h1>Login</h1>
-        <p>The camera will first run a liveness test. If it does not pass within 10 seconds, the login attempt ends.</p>
-        <button type="button" onclick="startLoginTest(this)">
-            Start login test
-        </button>
-        <p id="login-status" style="font-weight: 600; margin-top: 12px;"></p>
-        <div style="margin-top: 16px; max-width: 800px;">
-            <img id="recognition" alt="Facial recognition stream" style="width: 100%; border: 1px solid #ccc; border-radius: 8px; display: block;">
-        </div>
-        <script>
-            function closeLoginFeed(message, color) {
-                const stream = document.getElementById('recognition');
-                const status = document.getElementById('login-status');
-                stream.src = '';
-                status.textContent = message;
-                status.style.color = color;
-            }
-
-            function startLoginTest(button) {
-                const stream = document.getElementById('recognition');
-                const status = document.getElementById('login-status');
-                button.disabled = true;
-                status.textContent = 'Running liveness test...';
-                status.style.color = '#333';
-                stream.src = '/login-video';
-
-                const pollStatus = setInterval(async () => {
-                    try {
-                        const response = await fetch('/login-status');
-                        const data = await response.json();
-                        if (data.state === 'failed') {
-                            closeLoginFeed(data.message || 'Liveness test failed. Video feed closed.', '#b00020');
-                            button.disabled = false;
-                            clearInterval(pollStatus);
-                        } else if (data.state === 'blacklisted') {
-                            closeLoginFeed(data.message || 'Blacklisted user detected. Video feed closed.', '#b00020');
-                            button.disabled = false;
-                            clearInterval(pollStatus);
-                        } else {
-                            if (data.state === 'granted') {
-                            clearInterval(pollStatus);
-                            window.location.href = '/lista-negra';
-
-                            }
-
-                        }
-                    } catch (error) {
-                        closeLoginFeed('Video feed closed.', '#b00020');
-                        button.disabled = false;
-                        clearInterval(pollStatus);
-                    }
-                }, 300);
-            }
-        </script>
-    """)
 
 
 @app.get("/register")
 async def register_page():
-    return HTMLResponse("""
-        <h1>Register</h1>
-        <form action="/subir" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" accept="image/png,image/jpeg">
-            <button type="submit">Upload and register</button>
-        </form>
-    """)
+    html_path = Path("views") / "register.html"
+    if not html_path.exists():
+        raise HTTPException(status_code=404, detail="register.html not found")
+    return HTMLResponse(html_path.read_text(encoding="utf-8"))
+
 
 
 direccion_subidos = Path("documentos") / "uploads"
@@ -387,6 +320,8 @@ def _process_identity_frame(frame):
 
 
 def generate_login_frames():
+
+    reset_liveness_state()
     cap = cv2.VideoCapture(0)
     start_time = time.monotonic()
     liveness_passed = False
@@ -501,104 +436,18 @@ async def add_to_blacklist(user_name: str):
         "filename": destination_image.name,
     }
 
+@app.get("/login")
+async def login_page():
+    html_path = Path("views") / "login.html"
+    ...
+    return HTMLResponse(html_path.read_text(encoding="utf-8"))
+
 @app.get("/lista-negra")
 async def check_blacklist():
-    return HTMLResponse("""
-        <h1>Blacklist</h1>
-        <p>Manage registered users and move them to the blacklist when needed.</p>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; max-width: 1100px;">
-            <section style="padding: 16px; border: 1px solid #ddd; border-radius: 10px;">
-                <h2 style="margin-top: 0;">Registered users</h2>
-                <button type="button" onclick="loadRegistered()">Refresh registered users</button>
-                <ul id="registered-list" style="list-style: none; padding-left: 0; margin-top: 16px;"></ul>
-            </section>
-            <section style="padding: 16px; border: 1px solid #ddd; border-radius: 10px;">
-                <h2 style="margin-top: 0;">Blacklisted users</h2>
-                <button type="button" onclick="loadBlacklist()">Refresh blacklist</button>
-                <ul id="blacklist-list" style="list-style: none; padding-left: 0; margin-top: 16px;"></ul>
-            </section>
-        </div>
-        <p id="blacklist-message" style="margin-top: 16px; font-weight: 600;"></p>
-        <script>
-            async function addUserToBlacklist(userName) {
-                try {
-                    const response = await fetch(`/blacklist/${encodeURIComponent(userName)}`, {
-                        method: 'POST',
-                    });
+    html_path = Path("views") / "blacklist.html"
+    ...
+    return HTMLResponse(html_path.read_text(encoding="utf-8"))
 
-                    const data = await response.json();
-                    const message = document.getElementById('blacklist-message');
-                    if (!response.ok) {
-                        throw new Error(data.detail || 'Error adding user to blacklist');
-                    }
-
-                    message.textContent = data.message;
-                    message.style.color = '#007500';
-                    await Promise.all([loadRegistered(), loadBlacklist()]);
-                } catch (error) {
-                    const message = document.getElementById('blacklist-message');
-                    message.textContent = error.message;
-                    message.style.color = '#b00020';
-                }
-            }
-
-            async function loadBlacklist() {
-                try {
-                    const response = await fetch('/blacklist-faces');
-                    const data = await response.json();
-                    const listContainer = document.getElementById('blacklist-list');
-                    listContainer.innerHTML = '';
-                    data.forEach(item => {
-                        const listItem = document.createElement('li');
-                        listItem.style.padding = '8px 0';
-                        listItem.textContent = item.name;
-                        listContainer.appendChild(listItem);
-                    });
-                } catch (error) {
-                    console.error('Error loading blacklist:', error);
-                }
-            }
-
-            async function loadRegistered() {
-                try {
-                    const response = await fetch('/registered-faces');
-                    const data = await response.json();
-                    const listContainer = document.getElementById('registered-list');
-                    listContainer.innerHTML = '';
-                    data.forEach(item => {
-                        const listItem = document.createElement('li');
-                        listItem.style.display = 'flex';
-                        listItem.style.justifyContent = 'space-between';
-                        listItem.style.alignItems = 'center';
-                        listItem.style.gap = '12px';
-                        listItem.style.padding = '8px 0';
-
-                        const nameSpan = document.createElement('span');
-                        nameSpan.textContent = item.name;
-
-                        const button = document.createElement('button');
-                        button.type = 'button';
-                        button.textContent = 'Add to blacklist';
-                        button.onclick = () => addUserToBlacklist(item.name);
-
-                        listItem.appendChild(nameSpan);
-                        listItem.appendChild(button);
-                        listContainer.appendChild(listItem);
-                    });
-                } catch (error) {
-                    console.error('Error loading registered faces:', error);
-                }
-            }
-
-            window.onload = async () => {
-                await Promise.all([loadBlacklist(), loadRegistered()]);
-            };
-        </script>
-    """)
-
-# @app.get("/verificar-uni")
-# async def check_uniqueness():
-#     return {"message": "Uniqueness check completed"}
 
 if __name__ == "__main__":    
     uvicorn.run(app, host="127.0.0.1", port=8000)
