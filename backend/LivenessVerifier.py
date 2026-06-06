@@ -1,4 +1,80 @@
+import cv2
+from pathlib import Path
+from functools import lru_cache
 
+import cv2
+import face_recognition
+import numpy as np
+import backend.LivenessVerifier as lv
+from mediapipe.tasks.python.core import base_options as mp_base_options
+from mediapipe.tasks.python.vision import face_landmarker
+from mediapipe.tasks.python.vision.core import image as mp_image
+from mediapipe.tasks.python.vision.core import vision_task_running_mode as mp_running_mode
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_PATH = BASE_DIR / "documentos" / "models" / "face_landmarker.task"
+DOCUMENTOS_DIR = BASE_DIR / "documentos"
+BLACKLIST_DIR = BASE_DIR / "documentos" / "blacklist"
+
+
+full_path_haarcascade = cv2.__path__[0] + "/data/haarcascade_frontalface_default.xml"
+face_cascade = cv2.CascadeClassifier(full_path_haarcascade)
+full_path_eyecascade = cv2.__path__[0] + "/data/haarcascade_eye_tree_eyeglasses.xml"
+eye_cascade = cv2.CascadeClassifier(full_path_eyecascade)
+imagen = cv2.imread("image.png")
+
+
+KNOWN_FACE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
+KNOWN_FACE_TOLERANCE = 0.5
+BLINK_BLENDSHAPE_THRESHOLD = 0.35
+BLINK_EAR_THRESHOLD = 0.21
+CLOSED_EYE_MIN_FRAMES = 2
+
+
+LEFT_EYE = [33, 160, 158, 133, 153, 144]
+RIGHT_EYE = [362, 385, 387, 263, 373, 380]
+
+
+
+def _euclidean_distance(point_a, point_b):
+    return np.linalg.norm(np.array(point_a) - np.array(point_b))
+
+
+
+def _load_face_landmarker():
+    if not MODEL_PATH.exists():
+        print(f"ERROR: No se encontró el modelo en la ruta: {MODEL_PATH.absolute()}")
+        return None
+
+    try:
+        base_options = mp_base_options.BaseOptions(model_asset_path=str(MODEL_PATH))
+        options = face_landmarker.FaceLandmarkerOptions(
+            base_options=base_options,
+            running_mode=mp_running_mode.VisionTaskRunningMode.VIDEO,
+            output_face_blendshapes=True,
+            num_faces=1,
+        )
+        print("MediaPipe cargado exitosamente.")
+        return face_landmarker.FaceLandmarker.create_from_options(options)
+    except Exception as e:
+        print(f"ERROR CRÍTICO al cargar MediaPipe: {e}")
+        return None
+    
+
+def _eye_aspect_ratio(landmarks, indices, image_width, image_height):
+    points = [
+        (landmarks[index].x * image_width, landmarks[index].y * image_height)
+        for index in indices
+    ]
+
+    vertical_one = _euclidean_distance(points[1], points[5])
+    vertical_two = _euclidean_distance(points[2], points[4])
+    horizontal = _euclidean_distance(points[0], points[3])
+
+    if horizontal == 0:
+        return 0.0
+
+    return (vertical_one + vertical_two) / (2.0 * horizontal)
 
 class LivenessVerifier:
     def __init__(self):

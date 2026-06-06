@@ -491,7 +491,7 @@
             setStatusText('Cotejando con rostros registrados...');
           } else if (data.state === 'failed') {
             setStep(2, 'error');
-            closeLoginFeed(data.message || 'Prueba de liveliness fallida.', 'failed');
+            closeLoginFeed(data.message || 'Prueba de liveliness fallida. Parpadee cuando se le pida', 'failed');
             button.disabled = false;
             clearInterval(pollStatus);
           } else if (data.state === 'blacklisted') {
