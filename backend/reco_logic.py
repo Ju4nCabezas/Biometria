@@ -101,7 +101,7 @@ def _load_blacklisted_faces():
 def _match_frame_against_registered_faces(frame):  
     # Compara el frame con todos los rostros registrados.
     # 1. Convierte el frame de BGR (OpenCV) a RGB (face_recognition).
-    # 2. Detecta ubicaciones de rostros con el modelo HOG (más rápido que CNN).
+    # 2. Detecta ubicaciones de rostros con el modelo HOG.
     # 3. Calcula el encoding de cada rostro detectado.
     # 4. Calcula la distancia euclidiana contra todos los encodings conocidos.
     # 5. Si la distancia mínima está dentro del umbral, devuelve True y el nombre.
